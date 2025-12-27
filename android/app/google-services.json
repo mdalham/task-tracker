@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "548990579980",
+    "project_id": "task-tracker-3a9d7",
+    "storage_bucket": "task-tracker-3a9d7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548990579980:android:8c6a03aa5a944a8ccb8529",
+        "android_client_info": {
+          "package_name": "com.thardstudio.tasktracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "548990579980-m0cj585ebkf3apiqr5vm5ceqcqtuu197.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thardstudio.tasktracker",
+            "certificate_hash": "60f593fc15d868adaa5427c54dd5c791587d825f"
+          }
+        },
+        {
+          "client_id": "548990579980-o2e4pfqv5aojrbstps0f94v5b1oo1npc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thardstudio.tasktracker",
+            "certificate_hash": "7f50c3eff18f245d3f68287097e947498ca6b465"
+          }
+        },
+        {
+          "client_id": "548990579980-sjggc5utiog4jdno21235aale80iu5pv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thardstudio.tasktracker",
+            "certificate_hash": "afbe621106ed402da263db6cbf5d9d8d1f979131"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnJwU8Ncy7xt6dUgar9pqJ5P4cpT1FoUY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
