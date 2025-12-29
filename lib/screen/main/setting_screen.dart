@@ -111,11 +111,10 @@ class _SettingScreenState extends State<SettingScreen>
                 textTheme: textTheme,
               ),
 
-              if (!subscriptionProvider.isSubscribed) WatchAdButton(),
               SizedBox(height: 6),
 
               _buildListTile(
-                title: 'Sub DEMO',
+                title: 'Ads remove',
                 subtitle: '',
                 icon: IconHelper.user,
                 onTap: () {
@@ -128,6 +127,8 @@ class _SettingScreenState extends State<SettingScreen>
                 },
                 textTheme: textTheme,
               ),
+              if (!subscriptionProvider.isSubscribed) WatchAdButton(),
+
 
               SizedBox(height: 6),
               Divider(thickness: 1, color: colorScheme.outline),

@@ -79,9 +79,7 @@ class TodoListItem extends StatelessWidget {
                 Expanded(
                   child: Text(
                     todo.title,
-                    style: theme.textTheme.titleLarge!.copyWith(
-                      fontSize: 24
-                    )
+                    style: theme.textTheme.titleLarge
                   ),
                 ),
               ],
