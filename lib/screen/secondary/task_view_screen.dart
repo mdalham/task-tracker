@@ -16,9 +16,6 @@ import '../../service/task/provider/task_provider.dart';
 import '../../widget/custom_snack_bar.dart';
 import '../../widget/emptystate/view_empty_state.dart';
 
-/// ---------------------------------------------------------------
-/// TASK VIEW – Draggable Bottom Sheet (iOS Notes / Google Keep)
-/// ---------------------------------------------------------------
 class TaskViewScreen extends StatefulWidget {
   final TaskModel task;
   const TaskViewScreen({super.key, required this.task});
@@ -422,7 +419,7 @@ class _TaskSheetState extends State<_TaskSheet> {
                                 ],
 
                                 // =============================
-                                // CHECKLIST
+                                // CHECKLIST - ✅ FIXED
                                 // =============================
                                 if (widget.task.checklistTask.isNotEmpty) ...[
                                   Row(
@@ -441,41 +438,44 @@ class _TaskSheetState extends State<_TaskSheet> {
                                     ],
                                   ),
 
-                                  ...widget.task.checklistTask.map(
-                                        (item) => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 6,
-                                      ),
-                                      child: GestureDetector(
-                                        onTap: () =>
-                                            _toggleChecklistItem(context, item),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              item.isChecked
-                                                  ? Icons.check_box
-                                                  : Icons
-                                                  .check_box_outline_blank,
-                                              size:
-                                              MediaQuery.of(
-                                                context,
-                                              ).size.shortestSide *
-                                                  0.055,
-                                              color: item.isChecked
-                                                  ? Colors.green
-                                                  : cs.onSurfaceVariant,
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                item.title,
-                                                style: textTheme.bodyMedium,
-                                              ),
-                                            ),
-                                          ],
+                                  // ✅ FIXED: Use index to identify items uniquely
+                                  ...List.generate(
+                                    widget.task.checklistTask.length,
+                                        (index) {
+                                      final item = widget.task.checklistTask[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 6,
                                         ),
-                                      ),
-                                    ),
+                                        child: GestureDetector(
+                                          onTap: () =>
+                                              _toggleChecklistItemByIndex(context, index),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                item.isChecked
+                                                    ? Icons.check_box
+                                                    : Icons.check_box_outline_blank,
+                                                size: MediaQuery.of(context)
+                                                    .size
+                                                    .shortestSide *
+                                                    0.055,
+                                                color: item.isChecked
+                                                    ? Colors.green
+                                                    : cs.onSurfaceVariant,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text(
+                                                  item.title,
+                                                  style: textTheme.bodyMedium,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   const SizedBox(height: 10),
                                   _buildBanner(1),
@@ -692,22 +692,22 @@ class _TaskSheetState extends State<_TaskSheet> {
     );
   }
 
-  Future<void> _toggleChecklistItem(
+  // ✅ FIXED: Toggle by index instead of comparing item properties
+  Future<void> _toggleChecklistItemByIndex(
       BuildContext context,
-      TaskModel item,
+      int itemIndex,
       ) async {
     if (widget.task.id == null) return;
     final provider = Provider.of<TaskProvider>(context, listen: false);
 
-    final updatedChecklist = widget.task.checklistTask.map((i) {
-      if (i.title == item.title) {
-        return i.copyWith(
-          isChecked: !i.isChecked,
-          completedAt: !i.isChecked ? DateTime.now() : null,
-        );
-      }
-      return i;
-    }).toList();
+    final updatedChecklist = List<TaskModel>.from(widget.task.checklistTask);
+
+    // Toggle the specific item by index
+    final currentItem = updatedChecklist[itemIndex];
+    updatedChecklist[itemIndex] = currentItem.copyWith(
+      isChecked: !currentItem.isChecked,
+      completedAt: !currentItem.isChecked ? DateTime.now() : null,
+    );
 
     final updatedTask = widget.task.copyWith(
       checklistTask: updatedChecklist,

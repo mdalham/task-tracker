@@ -32,7 +32,7 @@ class NoteViewScreen extends StatefulWidget {
 
 class _NoteViewScreenState extends State<NoteViewScreen> {
   final DraggableScrollableController _dragController =
-      DraggableScrollableController();
+  DraggableScrollableController();
 
   // ✅ FIXED: Add interstitial manager for showing ad on close
   SubscriptionAwareInterstitialManager? _interstitialManager;
@@ -248,7 +248,7 @@ class _NoteSheetState extends State<_NoteSheet> {
               } else {
                 const snaps = [0.35, 0.55, 0.75, 1.0];
                 target = snaps.reduce(
-                  (a, b) => (current - a).abs() < (current - b).abs() ? a : b,
+                      (a, b) => (current - a).abs() < (current - b).abs() ? a : b,
                 );
               }
 
@@ -392,9 +392,9 @@ class _NoteSheetState extends State<_NoteSheet> {
                             padding: EdgeInsets.zero,
                             styleSheet: MarkdownStyleSheet(
                               textAlign:
-                                  NoteHelperClass.convertTextAlignToWrapAlignment(
-                                    textAlign,
-                                  ),
+                              NoteHelperClass.convertTextAlignToWrapAlignment(
+                                textAlign,
+                              ),
                               p: textTheme.bodyLarge?.copyWith(
                                 height: 1.75,
                                 color: colorScheme.onSurface,
@@ -534,7 +534,8 @@ class _NoteSheetState extends State<_NoteSheet> {
                     ),
                     const SizedBox(height: 10),
                   ],
-                  //Checklist
+
+                  // ✅ FIXED: Checklist with index-based toggling
                   if (note.checklist.isNotEmpty) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -547,42 +548,43 @@ class _NoteSheetState extends State<_NoteSheet> {
                         ),
                       ],
                     ),
-                    ...note.checklist
-                        .map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: GestureDetector(
-                              onTap: () => _toggleChecklistItem(context, item),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    item.isChecked
-                                        ? Icons.check_box
-                                        : Icons.check_box_outline_blank,
-                                    size:
-                                        MediaQuery.of(
-                                          context,
-                                        ).size.shortestSide *
-                                        0.055,
-                                    color: item.isChecked
-                                        ? Colors.green
-                                        : colorScheme.onSurface,
+
+                    // ✅ FIXED: Use List.generate with index
+                    ...List.generate(
+                      note.checklist.length,
+                          (index) {
+                        final item = note.checklist[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: GestureDetector(
+                            onTap: () => _toggleChecklistItemByIndex(context, index),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  item.isChecked
+                                      ? Icons.check_box
+                                      : Icons.check_box_outline_blank,
+                                  size: MediaQuery.of(context).size.shortestSide * 0.055,
+                                  color: item.isChecked
+                                      ? Colors.green
+                                      : colorScheme.onSurface,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    item.title,
+                                    style: textTheme.bodyMedium,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      item.title,
-                                      style: textTheme.bodyMedium,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
-                        )
-                        .toList(),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 10),
                   ],
+
                   //Audio
                   if (widget.note.audios.isNotEmpty) ...[
                     Text('Audio', style: textTheme.titleMedium),
@@ -708,7 +710,7 @@ class _NoteSheetState extends State<_NoteSheet> {
                         if (note.reminder != null)
                           _buildInfoRow(
                             icon:
-                                'assets/icons/bell-notification-social-media.svg',
+                            'assets/icons/bell-notification-social-media.svg',
                             label: 'Reminder',
                             value: _formatReminder(note.reminder!),
                             color: colorScheme,
@@ -785,10 +787,10 @@ class _NoteSheetState extends State<_NoteSheet> {
   }
 
   Widget _buildChecklistProgress(
-    BuildContext context,
-    TextTheme textTheme,
-    ColorScheme cs,
-  ) {
+      BuildContext context,
+      TextTheme textTheme,
+      ColorScheme cs,
+      ) {
     final total = note.checklist.length;
     final completed = note.checklist.where((i) => i.isChecked).length;
     final progress = total > 0 ? completed / total : 0.0;
@@ -826,20 +828,22 @@ class _NoteSheetState extends State<_NoteSheet> {
     );
   }
 
-  Future<void> _toggleChecklistItem(
-    BuildContext context,
-    ChecklistItem item,
-  ) async {
+  // ✅ FIXED: Toggle by index instead of comparing item properties
+  Future<void> _toggleChecklistItemByIndex(
+      BuildContext context,
+      int itemIndex,
+      ) async {
     final provider = Provider.of<NoteProvider>(context, listen: false);
 
     if (note.id == null) return;
 
-    final updatedChecklist = note.checklist.map((i) {
-      if (i.title == item.title) {
-        return i.copyWith(isChecked: !i.isChecked);
-      }
-      return i;
-    }).toList();
+    final updatedChecklist = List<ChecklistItem>.from(note.checklist);
+
+    // Toggle the specific item by index
+    final currentItem = updatedChecklist[itemIndex];
+    updatedChecklist[itemIndex] = currentItem.copyWith(
+      isChecked: !currentItem.isChecked,
+    );
 
     final updatedNote = note.copyWith(checklist: updatedChecklist);
 

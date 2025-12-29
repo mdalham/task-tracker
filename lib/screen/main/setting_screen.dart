@@ -286,7 +286,7 @@ class _SettingScreenState extends State<SettingScreen>
               Text("About", style: textTheme.titleLarge),
               _buildListTile(
                 title: 'App Version',
-                subtitle: 'v1.0.0',
+                subtitle: 'v1.0.1',
                 icon: IconHelper.aboutApp,
                 onTap: () {},
                 textTheme: textTheme,
