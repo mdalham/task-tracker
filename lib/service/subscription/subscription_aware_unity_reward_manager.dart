@@ -41,6 +41,9 @@ class SubscriptionAwareUnityRewardManager {
   int _secondaryRetryCount = 0;
   int _admobRetryCount = 0;
 
+  // Track if ad is currently showing to prevent duplicate calls
+  bool _isShowingAd = false;
+
   // Callbacks
   Function(bool completed, String? itemId, int? amount)? _onRewardedComplete;
   Function()? _onRewardFailed;
@@ -280,6 +283,12 @@ class SubscriptionAwareUnityRewardManager {
     required Function(bool completed, String? itemId, int? amount) onComplete,
     Function()? onFailed,
   }) async {
+    // Prevent duplicate calls
+    if (_isShowingAd) {
+      debugPrint('[UnityRewardManager] ⚠️ Ad already showing, ignoring request');
+      return;
+    }
+
     // ✅ Check subscription status
     if (subscriptionProvider.isSubscribed) {
       debugPrint('[UnityRewardManager] 🌟 Premium user - no ads');
@@ -287,41 +296,56 @@ class SubscriptionAwareUnityRewardManager {
       return;
     }
 
+    _isShowingAd = true;
     _onRewardedComplete = onComplete;
     _onRewardFailed = onFailed;
 
-    // Try primary reward ads in order: High → Med → Low
+    // Try to show ads in priority order
+    await _tryShowAdChain();
+  }
+
+  /// Attempts to show ads following the priority chain
+  Future<void> _tryShowAdChain() async {
+    debugPrint('[UnityRewardManager] Starting ad fallback chain...');
+
+    // 1. Try Primary High
     if (_isPrimaryRewardHighReady) {
+      debugPrint('[UnityRewardManager] Attempting Primary HIGH');
       await _showPrimaryRewardAdHigh();
       return;
     }
 
+    // 2. Try Primary Med
     if (_isPrimaryRewardMedReady) {
+      debugPrint('[UnityRewardManager] Attempting Primary MED');
       await _showPrimaryRewardAdMed();
       return;
     }
 
+    // 3. Try Primary Low
     if (_isPrimaryRewardLowReady) {
+      debugPrint('[UnityRewardManager] Attempting Primary LOW');
       await _showPrimaryRewardAdLow();
       return;
     }
 
-    // Fallback to secondary reward ad
+    // 4. Try Secondary
     if (_isSecondaryRewardReady) {
+      debugPrint('[UnityRewardManager] Attempting Secondary Reward');
       await _showSecondaryRewardAd();
       return;
     }
 
-    debugPrint('[UnityRewardManager] No Unity ads ready, falling back to AdMob interstitial...');
-
-    // Final fallback to AdMob interstitial
+    // 5. Try AdMob as final fallback
     if (_isAdMobInterstitialReady) {
+      debugPrint('[UnityRewardManager] Attempting AdMob Interstitial (final fallback)');
       await _showAdMobInterstitial();
       return;
     }
 
-    // No ads available
-    debugPrint('[UnityRewardManager] ❌ No ads available');
+    // No ads available at all
+    debugPrint('[UnityRewardManager] ❌ No ads available in entire chain');
+    _isShowingAd = false;
     _onRewardFailed?.call();
     _onRewardedComplete?.call(false, null, null);
   }
@@ -339,6 +363,7 @@ class SubscriptionAwareUnityRewardManager {
         onComplete: (placementId) {
           debugPrint('[UnityRewardManager] ✅ Primary reward (HIGH) completed');
           _isPrimaryRewardHighReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(true, 'unity_primary_high', 1);
 
           // Reload for next time
@@ -347,9 +372,13 @@ class SubscriptionAwareUnityRewardManager {
         onFailed: (placementId, error, message) {
           debugPrint('[UnityRewardManager] ❌ Primary (HIGH) show failed: $message');
           _isPrimaryRewardHighReady = false;
+          _isShowingAd = false;
 
           // Try next in fallback chain
-          _showFallbackAd();
+          _tryShowAdChain();
+
+          // Reload for next time
+          _loadPrimaryRewardAdHigh();
         },
         onStart: (placementId) {
           debugPrint('[UnityRewardManager] Primary ad (HIGH) started');
@@ -360,6 +389,7 @@ class SubscriptionAwareUnityRewardManager {
         onSkipped: (placementId) {
           debugPrint('[UnityRewardManager] ⏭️ Primary ad (HIGH) skipped');
           _isPrimaryRewardHighReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(false, null, null);
 
           // Reload for next time
@@ -369,7 +399,9 @@ class SubscriptionAwareUnityRewardManager {
     } catch (e) {
       debugPrint('[UnityRewardManager] ❌ Primary (HIGH) show exception: $e');
       _isPrimaryRewardHighReady = false;
-      _showFallbackAd();
+      _isShowingAd = false;
+      _tryShowAdChain();
+      _loadPrimaryRewardAdHigh();
     }
   }
 
@@ -382,6 +414,7 @@ class SubscriptionAwareUnityRewardManager {
         onComplete: (placementId) {
           debugPrint('[UnityRewardManager] ✅ Primary reward (MED) completed');
           _isPrimaryRewardMedReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(true, 'unity_primary_med', 1);
 
           // Reload for next time
@@ -390,9 +423,13 @@ class SubscriptionAwareUnityRewardManager {
         onFailed: (placementId, error, message) {
           debugPrint('[UnityRewardManager] ❌ Primary (MED) show failed: $message');
           _isPrimaryRewardMedReady = false;
+          _isShowingAd = false;
 
           // Try next in fallback chain
-          _showFallbackAd();
+          _tryShowAdChain();
+
+          // Reload for next time
+          _loadPrimaryRewardAdMed();
         },
         onStart: (placementId) {
           debugPrint('[UnityRewardManager] Primary ad (MED) started');
@@ -403,6 +440,7 @@ class SubscriptionAwareUnityRewardManager {
         onSkipped: (placementId) {
           debugPrint('[UnityRewardManager] ⏭️ Primary ad (MED) skipped');
           _isPrimaryRewardMedReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(false, null, null);
 
           // Reload for next time
@@ -412,7 +450,9 @@ class SubscriptionAwareUnityRewardManager {
     } catch (e) {
       debugPrint('[UnityRewardManager] ❌ Primary (MED) show exception: $e');
       _isPrimaryRewardMedReady = false;
-      _showFallbackAd();
+      _isShowingAd = false;
+      _tryShowAdChain();
+      _loadPrimaryRewardAdMed();
     }
   }
 
@@ -425,6 +465,7 @@ class SubscriptionAwareUnityRewardManager {
         onComplete: (placementId) {
           debugPrint('[UnityRewardManager] ✅ Primary reward (LOW) completed');
           _isPrimaryRewardLowReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(true, 'unity_primary_low', 1);
 
           // Reload for next time
@@ -433,9 +474,13 @@ class SubscriptionAwareUnityRewardManager {
         onFailed: (placementId, error, message) {
           debugPrint('[UnityRewardManager] ❌ Primary (LOW) show failed: $message');
           _isPrimaryRewardLowReady = false;
+          _isShowingAd = false;
 
-          // Try secondary or AdMob
-          _showSecondaryOrAdMob();
+          // Try next in fallback chain
+          _tryShowAdChain();
+
+          // Reload for next time
+          _loadPrimaryRewardAdLow();
         },
         onStart: (placementId) {
           debugPrint('[UnityRewardManager] Primary ad (LOW) started');
@@ -446,6 +491,7 @@ class SubscriptionAwareUnityRewardManager {
         onSkipped: (placementId) {
           debugPrint('[UnityRewardManager] ⏭️ Primary ad (LOW) skipped');
           _isPrimaryRewardLowReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(false, null, null);
 
           // Reload for next time
@@ -455,7 +501,9 @@ class SubscriptionAwareUnityRewardManager {
     } catch (e) {
       debugPrint('[UnityRewardManager] ❌ Primary (LOW) show exception: $e');
       _isPrimaryRewardLowReady = false;
-      _showSecondaryOrAdMob();
+      _isShowingAd = false;
+      _tryShowAdChain();
+      _loadPrimaryRewardAdLow();
     }
   }
 
@@ -472,6 +520,7 @@ class SubscriptionAwareUnityRewardManager {
         onComplete: (placementId) {
           debugPrint('[UnityRewardManager] ✅ Secondary reward completed');
           _isSecondaryRewardReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(true, 'unity_secondary', 1);
 
           // Reload for next time
@@ -480,14 +529,13 @@ class SubscriptionAwareUnityRewardManager {
         onFailed: (placementId, error, message) {
           debugPrint('[UnityRewardManager] ❌ Secondary show failed: $message');
           _isSecondaryRewardReady = false;
+          _isShowingAd = false;
 
           // Try AdMob fallback
-          if (_isAdMobInterstitialReady) {
-            _showAdMobInterstitial();
-          } else {
-            _onRewardFailed?.call();
-            _onRewardedComplete?.call(false, null, null);
-          }
+          _tryShowAdChain();
+
+          // Reload for next time
+          _loadSecondaryRewardAd();
         },
         onStart: (placementId) {
           debugPrint('[UnityRewardManager] Secondary ad started');
@@ -498,6 +546,7 @@ class SubscriptionAwareUnityRewardManager {
         onSkipped: (placementId) {
           debugPrint('[UnityRewardManager] ⏭️ Secondary ad skipped');
           _isSecondaryRewardReady = false;
+          _isShowingAd = false;
           _onRewardedComplete?.call(false, null, null);
 
           // Reload for next time
@@ -507,14 +556,9 @@ class SubscriptionAwareUnityRewardManager {
     } catch (e) {
       debugPrint('[UnityRewardManager] ❌ Secondary show exception: $e');
       _isSecondaryRewardReady = false;
-
-      // Try AdMob fallback
-      if (_isAdMobInterstitialReady) {
-        _showAdMobInterstitial();
-      } else {
-        _onRewardFailed?.call();
-        _onRewardedComplete?.call(false, null, null);
-      }
+      _isShowingAd = false;
+      _tryShowAdChain();
+      _loadSecondaryRewardAd();
     }
   }
 
@@ -532,72 +576,17 @@ class SubscriptionAwareUnityRewardManager {
 
       debugPrint('[UnityRewardManager] ✅ AdMob interstitial completed');
       _isAdMobInterstitialReady = false;
+      _isShowingAd = false;
       _onRewardedComplete?.call(true, 'admob_fallback', 1);
 
       // Reload for next time
       _loadAdMobInterstitialAd();
     } catch (e) {
       debugPrint('[UnityRewardManager] ❌ AdMob show exception: $e');
+      _isShowingAd = false;
       _onRewardFailed?.call();
       _onRewardedComplete?.call(false, null, null);
     }
-  }
-
-  // ========================================================================
-  // FALLBACK HELPERS
-  // ========================================================================
-
-  Future<void> _showFallbackAd() async {
-    debugPrint('[UnityRewardManager] Attempting fallback chain...');
-
-    // Try remaining primary ads in order: Med → Low
-    if (_isPrimaryRewardMedReady) {
-      await _showPrimaryRewardAdMed();
-      return;
-    }
-
-    if (_isPrimaryRewardLowReady) {
-      await _showPrimaryRewardAdLow();
-      return;
-    }
-
-    // If no primary ads, try secondary
-    if (_isSecondaryRewardReady) {
-      await _showSecondaryRewardAd();
-      return;
-    }
-
-    // Finally try AdMob
-    if (_isAdMobInterstitialReady) {
-      await _showAdMobInterstitial();
-      return;
-    }
-
-    // No fallbacks available
-    debugPrint('[UnityRewardManager] ❌ No fallback ads available');
-    _onRewardFailed?.call();
-    _onRewardedComplete?.call(false, null, null);
-  }
-
-  Future<void> _showSecondaryOrAdMob() async {
-    debugPrint('[UnityRewardManager] Falling back to secondary or AdMob...');
-
-    // Try secondary
-    if (_isSecondaryRewardReady) {
-      await _showSecondaryRewardAd();
-      return;
-    }
-
-    // Try AdMob
-    if (_isAdMobInterstitialReady) {
-      await _showAdMobInterstitial();
-      return;
-    }
-
-    // No ads available
-    debugPrint('[UnityRewardManager] ❌ No fallback ads available');
-    _onRewardFailed?.call();
-    _onRewardedComplete?.call(false, null, null);
   }
 
   // ========================================================================
@@ -624,6 +613,7 @@ class SubscriptionAwareUnityRewardManager {
     'loading_primary_low': _isLoadingPrimaryLow,
     'loading_secondary': _isLoadingSecondaryReward,
     'loading_admob': _isLoadingAdMobInterstitial,
+    'is_showing_ad': _isShowingAd,
   };
 
   /// Manually reload all ads

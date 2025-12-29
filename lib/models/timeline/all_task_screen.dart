@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tasktracker/widget/loading_skeleton.dart';
+import 'package:tasktracker/widget/emptystate/loading_skeleton.dart';
 import 'package:tasktracker/helper%20class/size_helper_class.dart';
 import 'package:tasktracker/helper%20class/task_helper_class.dart';
 import 'package:tasktracker/models/add%20task/task_list_tile.dart';
@@ -180,7 +180,7 @@ class _AllTasksScreenState extends State<AllTasksScreen>
 
           return SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding: const EdgeInsets.only(left: 10,right: 10,top: 10,bottom: 4),
               child: Column(
                 children: [
                   _buildSearchAndFilters(
@@ -394,7 +394,7 @@ class _AllTasksScreenState extends State<AllTasksScreen>
     final itemCount = tasks.length + bannerIndices.length;
 
     return ListView.builder(
-      physics: const BouncingScrollPhysics(parent: ClampingScrollPhysics()),
+      physics: const BouncingScrollPhysics(),
       itemCount: itemCount,
       key: const PageStorageKey('task_list'),
       itemBuilder: (context, index) {

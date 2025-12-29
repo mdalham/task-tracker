@@ -14,6 +14,7 @@ import '../../service/task/db/recurrence_models.dart';
 import '../../service/task/db/tasks_models.dart';
 import '../../service/task/provider/task_provider.dart';
 import '../../widget/custom_snack_bar.dart';
+import '../../widget/emptystate/view_empty_state.dart';
 
 /// ---------------------------------------------------------------
 /// TASK VIEW – Draggable Bottom Sheet (iOS Notes / Google Keep)
@@ -477,8 +478,6 @@ class _TaskSheetState extends State<_TaskSheet> {
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-
-                                  // ✅ FIXED: Use safe banner builder
                                   _buildBanner(1),
                                 ],
 
@@ -486,33 +485,7 @@ class _TaskSheetState extends State<_TaskSheet> {
                                 if (widget.task.description.isEmpty &&
                                     widget.task.checklistTask.isEmpty)
                                   Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.notes_outlined,
-                                            size:
-                                            MediaQuery.of(
-                                              context,
-                                            ).size.shortestSide *
-                                                0.1,
-                                            color: Colors.grey[400],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'No additional details',
-                                            style: textTheme.titleSmall,
-                                          ),
-                                          const SizedBox(height: 10),
-
-                                          // ✅ FIXED: Use safe banner builder
-                                          _buildBanner(2),
-                                        ],
-                                      ),
-                                    ),
+                                    child: ViewEmptyState(title: 'No additional details',),
                                   ),
                               ],
                             ),

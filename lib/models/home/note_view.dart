@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tasktracker/models/note%20view/custom_notes_list_tile.dart';
-import 'package:tasktracker/widget/empty_state.dart';
+import 'package:tasktracker/widget/emptystate/empty_state.dart';
 import '../../helper class/note_helper_class.dart';
 import '../../screen/secondary/note_add_or_edit_screen.dart';
 import '../../screen/secondary/note_view_screen.dart';
 import '../../service/ads/banner/banner_ad_container.dart';
+import '../../service/note/provider/notes_provider.dart';
 import '../../service/subscription/subscription_aware_banner_manager.dart';
-import '../../service/subscription/subscription_aware_interstitial_manager ·.dart';
 import '../../service/subscription/subscription_provider.dart';
 import '../../service/bottomnav/bottom_provider.dart';
 import '../../service/note/db/notes_models.dart';
-import '../../service/note/provider/notes_provider.dart';
-import '../../widget/loading_skeleton.dart';
 import '../../helper class/size_helper_class.dart';
+import '../../widget/emptystate/loading_skeleton.dart';
 
 class NoteView extends StatefulWidget {
   const NoteView({super.key});
@@ -55,7 +54,6 @@ class _NoteViewState extends State<NoteView>
         final indices = _generateBannerIndices(notes.length, _indices);
 
         setState(() {
-           // ✅ Initialize banner manager
           if (indices.isNotEmpty) {
             _bannerManager = SubscriptionAwareBannerManager(
               subscriptionProvider: subscriptionProvider,
@@ -78,7 +76,6 @@ class _NoteViewState extends State<NoteView>
     });
   }
 
-  // ✅ Helper method to generate banner indices
   List<int> _generateBannerIndices(int noteCount, int step) {
     List<int> indices = [];
     if (noteCount == 0) return indices;

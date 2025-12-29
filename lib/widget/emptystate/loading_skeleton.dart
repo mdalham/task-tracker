@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../helper class/size_helper_class.dart';
-import 'custom_container.dart';
+import '../../helper class/size_helper_class.dart';
+import '../custom_container.dart';
 
 class LoadingSkeleton extends StatefulWidget {
   final int loadingSkeletonItemCount;

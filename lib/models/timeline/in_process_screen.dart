@@ -9,7 +9,7 @@ import '../../service/task/provider/task_provider.dart';
 import '../../widget/animated_widget.dart';
 import '../../helper class/task_helper_class.dart';
 import '../add task/task_list_tile.dart';
-import 'package:tasktracker/widget/loading_skeleton.dart';
+import 'package:tasktracker/widget/emptystate/loading_skeleton.dart';
 
 class InProcessScreen extends StatefulWidget {
   const InProcessScreen({super.key});

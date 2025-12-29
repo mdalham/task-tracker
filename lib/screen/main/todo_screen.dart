@@ -3,6 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tasktracker/widget/emptystate/view_empty_state.dart';
 import '../../helper class/size_helper_class.dart';
 import '../../models/todo/filter_chip_row.dart';
 import '../../models/todo/todo_list_item.dart';
@@ -13,7 +14,7 @@ import '../../service/subscription/subscription_provider.dart';
 import '../../service/todo/db/todo_model.dart';
 import '../../service/todo/provider/todo_provider.dart';
 import '../../widget/animated_widget.dart';
-import '../../widget/empty_state.dart';
+import '../../widget/emptystate/empty_state.dart';
 import '../secondary/todo_add_and_edit_screen.dart';
 
 class TodoScreen extends StatefulWidget {
@@ -31,17 +32,16 @@ class _TodoScreenState extends State<TodoScreen> {
 
   String _searchQuery = '';
 
-  // ✅ Banner ad system
   SubscriptionAwareBannerManager? _bannerManager;
   bool _isInitialized = false;
-  final int _indices = 2; // Banner every 2 todos
+  bool _isRefreshingAds = false;
+  final int _indices = 2;
 
   @override
   void initState() {
     super.initState();
     _loadSortPreferences();
 
-    // ✅ Initialize banner manager after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
@@ -50,53 +50,75 @@ class _TodoScreenState extends State<TodoScreen> {
       await Future.delayed(const Duration(milliseconds: 50));
 
       if (mounted) {
-        final subscriptionProvider = context.read<SubscriptionProvider>();
-        final todoProvider = context.read<TodoProvider>();
-        final todoCount = todoProvider.todos.length;
-
-        // Generate banner indices (banner every 2 todos)
-        final indices = _generateBannerIndices(todoCount, _indices);
-
-        if (indices.isEmpty) {
-          debugPrint('[TodoScreen] No banner indices generated');
-          return;
-        }
-
-        setState(() {
-          _bannerManager = SubscriptionAwareBannerManager(
-            subscriptionProvider: subscriptionProvider,
-            indices: indices,
-            admobId: "ca-app-pub-7237142331361857/3881028501",
-            metaId: "1916722012533263_1916773885861409",
-            unityPlacementId: 'Banner_Android',
-          );
-          _isInitialized = true;
-        });
-
-        debugPrint(
-          '[TodoScreen] Banner manager initialized with ${indices.length} positions',
-        );
+        _initializeAds();
       }
     });
   }
 
-  // ✅ Helper method to generate banner indices
+  void _initializeAds() {
+    if (!mounted) return;
+
+    final subscriptionProvider = context.read<SubscriptionProvider>();
+
+    if (subscriptionProvider.isSubscribed) {
+      return;
+    }
+
+    final todoProvider = context.read<TodoProvider>();
+    final todoCount = todoProvider.todos.length;
+
+    final indices = _generateBannerIndices(todoCount, _indices);
+
+    if (indices.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _bannerManager = SubscriptionAwareBannerManager(
+        subscriptionProvider: subscriptionProvider,
+        indices: indices,
+        admobId: "ca-app-pub-7237142331361857/3881028501",
+        metaId: "1916722012533263_1916773885861409",
+        unityPlacementId: 'Banner_Android',
+      );
+      _isInitialized = true;
+    });
+  }
+
+  Future<void> _refreshAds() async {
+    if (_isRefreshingAds || !mounted) return;
+
+    _isRefreshingAds = true;
+
+    _bannerManager?.dispose();
+    _bannerManager = null;
+    _isInitialized = false;
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    if (mounted) {
+      _initializeAds();
+    }
+
+    _isRefreshingAds = false;
+  }
+
   List<int> _generateBannerIndices(int todoCount, int step) {
     List<int> indices = [];
     if (todoCount == 0) return indices;
 
-    int index = step; // First banner after 'step' todos
+    int index = step;
     while (index < todoCount + indices.length) {
       indices.add(index);
-      index += step + 1; // +1 because banner occupies a slot
+      index += step + 1;
     }
 
     return indices;
   }
 
-  // ✅ Pull to refresh handler
   void _onRefresh() async {
     await Provider.of<TodoProvider>(context, listen: false).refreshTodos();
+    await _refreshAds();
     if (mounted) {
       _refreshController.refreshCompleted();
     }
@@ -117,7 +139,6 @@ class _TodoScreenState extends State<TodoScreen> {
 
     return Consumer<TodoProvider>(
       builder: (context, provider, _) {
-        // Get icon sizes
         final iconWidth = SizeHelperClass.searchIconWidth(context);
         final iconHeight = SizeHelperClass.searchIconHeight(context);
         final sortIconWidth = SizeHelperClass.sortIconWidth(context);
@@ -127,7 +148,7 @@ class _TodoScreenState extends State<TodoScreen> {
           backgroundColor: colorScheme.surface,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              padding: const EdgeInsets.only(left: 10,right: 10,top: 10,bottom: 4),
               child: Column(
                 children: [
                   _buildSearchAndFilters(
@@ -180,7 +201,7 @@ class _TodoScreenState extends State<TodoScreen> {
                             final todos = provider.todos;
 
                             if (todos.isEmpty) {
-                              return const EmptyState(title: 'No todos yet');
+                              return const ViewEmptyState(title: 'No todos');
                             }
 
                             return _buildTodoList(
@@ -194,7 +215,6 @@ class _TodoScreenState extends State<TodoScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.08),
                 ],
               ),
             ),
@@ -205,11 +225,11 @@ class _TodoScreenState extends State<TodoScreen> {
   }
 
   Widget _buildTodoList(
-    List<Todo> todos,
-    ColorScheme cs,
-    TextTheme tt,
-    TodoProvider provider,
-  ) {
+      List<Todo> todos,
+      ColorScheme cs,
+      TextTheme tt,
+      TodoProvider provider,
+      ) {
     final showAds =
         _isInitialized && _bannerManager != null && !_bannerManager!.isDisposed;
 
@@ -220,9 +240,8 @@ class _TodoScreenState extends State<TodoScreen> {
     final itemCount = todos.length + bannerIndices.length;
 
     return ListView.builder(
-      physics: const BouncingScrollPhysics(parent: ClampingScrollPhysics()),
+      physics: const BouncingScrollPhysics(),
       itemCount: itemCount,
-      padding: const EdgeInsets.symmetric(vertical: 6),
       key: const PageStorageKey('todo_list'),
       itemBuilder: (context, index) {
         if (showAds && bannerIndices.contains(index)) {
@@ -260,14 +279,14 @@ class _TodoScreenState extends State<TodoScreen> {
   }
 
   Widget _buildSearchAndFilters(
-    ColorScheme cs,
-    TextTheme tt,
-    TodoProvider provider,
-    double iconWidth,
-    double iconHeight,
-    double sortIconWidth,
-    double sortIconHeight,
-  ) {
+      ColorScheme cs,
+      TextTheme tt,
+      TodoProvider provider,
+      double iconWidth,
+      double iconHeight,
+      double sortIconWidth,
+      double sortIconHeight,
+      ) {
     return TextField(
       controller: _searchController,
       style: tt.titleMedium,
@@ -291,38 +310,38 @@ class _TodoScreenState extends State<TodoScreen> {
               ScaleTransition(scale: animation, child: child),
           child: _searchQuery.isNotEmpty
               ? IconButton(
-                  key: const ValueKey('clear'),
-                  icon: SvgPicture.asset(
-                    'assets/icons/cross-small.svg',
-                    width: iconWidth,
-                    height: iconHeight,
-                    colorFilter: ColorFilter.mode(
-                      cs.onSurface,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                    provider.clearSearch();
-                  },
-                )
+            key: const ValueKey('clear'),
+            icon: SvgPicture.asset(
+              'assets/icons/cross-small.svg',
+              width: iconWidth,
+              height: iconHeight,
+              colorFilter: ColorFilter.mode(
+                cs.onSurface,
+                BlendMode.srcIn,
+              ),
+            ),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+              provider.clearSearch();
+            },
+          )
               : GestureDetector(
-                  key: const ValueKey('sort'),
-                  onTap: () => _showSortMenu(context, tt, provider),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: SvgPicture.asset(
-                      'assets/icons/sort.svg',
-                      width: sortIconWidth,
-                      height: sortIconHeight,
-                      colorFilter: ColorFilter.mode(
-                        cs.onSurface,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
+            key: const ValueKey('sort'),
+            onTap: () => _showSortMenu(context, tt, provider),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SvgPicture.asset(
+                'assets/icons/sort.svg',
+                width: sortIconWidth,
+                height: sortIconHeight,
+                colorFilter: ColorFilter.mode(
+                  cs.onSurface,
+                  BlendMode.srcIn,
                 ),
+              ),
+            ),
+          ),
         ),
         suffixIconConstraints: const BoxConstraints(
           minWidth: 56,
@@ -347,10 +366,10 @@ class _TodoScreenState extends State<TodoScreen> {
   }
 
   void _showSortMenu(
-    BuildContext context,
-    TextTheme tt,
-    TodoProvider provider,
-  ) {
+      BuildContext context,
+      TextTheme tt,
+      TodoProvider provider,
+      ) {
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
@@ -443,15 +462,14 @@ class _TodoScreenState extends State<TodoScreen> {
     );
   }
 
-  // ✅ FIXED: Now updates TodoProvider directly
   Widget _buildSortOption(
-    TextTheme tt,
-    TodoProvider provider,
-    String label,
-    TodoSortBy sortBy,
-    SortOrder sortOrder,
-    IconData icon,
-  ) {
+      TextTheme tt,
+      TodoProvider provider,
+      String label,
+      TodoSortBy sortBy,
+      SortOrder sortOrder,
+      IconData icon,
+      ) {
     final isSelected =
         provider.sortBy == sortBy && provider.sortOrder == sortOrder;
 
@@ -460,15 +478,12 @@ class _TodoScreenState extends State<TodoScreen> {
       title: Text(label, style: tt.bodyLarge),
       trailing: isSelected ? const Icon(Icons.check, color: Colors.blue) : null,
       onTap: () {
-        // ✅ Update provider's sort state
         provider.setSortBy(sortBy);
 
-        // ✅ If clicking same sortBy, toggle order
         if (provider.sortBy == sortBy && provider.sortOrder != sortOrder) {
-          provider.setSortBy(sortBy); // This toggles the order
+          provider.setSortBy(sortBy);
         }
 
-        // ✅ Save to SharedPreferences
         _saveSortPreferences(sortBy, sortOrder);
 
         Navigator.pop(context);
@@ -476,7 +491,6 @@ class _TodoScreenState extends State<TodoScreen> {
     );
   }
 
-  // ✅ FIXED: Load and apply to provider
   Future<void> _loadSortPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
@@ -484,9 +498,8 @@ class _TodoScreenState extends State<TodoScreen> {
       final sortOrderString =
           prefs.getString('todo_sort_order') ?? 'descending';
 
-      // Convert strings back to enums
       final sortBy = TodoSortBy.values.firstWhere(
-        (e) => e.toString().split('.').last == sortByString,
+            (e) => e.toString().split('.').last == sortByString,
         orElse: () => TodoSortBy.createdDate,
       );
 
@@ -494,22 +507,19 @@ class _TodoScreenState extends State<TodoScreen> {
           ? SortOrder.ascending
           : SortOrder.descending;
 
-      // ✅ Apply to provider
       final provider = context.read<TodoProvider>();
       provider.setSortBy(sortBy);
 
-      // Toggle again if needed to get correct order
       if (provider.sortOrder != sortOrder) {
         provider.setSortBy(sortBy);
       }
     }
   }
 
-  // ✅ FIXED: Save using enum names
   Future<void> _saveSortPreferences(
-    TodoSortBy sortBy,
-    SortOrder sortOrder,
-  ) async {
+      TodoSortBy sortBy,
+      SortOrder sortOrder,
+      ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('todo_sort_by', sortBy.toString().split('.').last);
     await prefs.setString(

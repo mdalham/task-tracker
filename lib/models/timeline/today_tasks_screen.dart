@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:tasktracker/widget/loading_skeleton.dart';
+import 'package:tasktracker/widget/emptystate/loading_skeleton.dart';
 import 'package:tasktracker/helper%20class/task_helper_class.dart';
 import 'package:tasktracker/models/add%20task/task_list_tile.dart';
 import '../../service/ads/banner/banner_ad_container.dart';
+import '../../service/ads/native_ad_widget.dart';
+import '../../service/subscription/nativ_ad_manager.dart';
 import '../../service/subscription/subscription_aware_banner_manager.dart';
 import '../../service/subscription/subscription_provider.dart';
 import '../../service/task/db/tasks_models.dart';
@@ -22,6 +24,8 @@ class _TodayTasksScreenState extends State<TodayTasksScreen> {
   // Use subscription-aware banner managers
   SubscriptionAwareBannerManager? _bannerManager;
   SubscriptionAwareBannerManager? _topBannerManager;
+  SubscriptionAwareNativeAdManager? _nativeAdManager;
+  bool _isNativeInitialized = false;
   bool _isInitialized = false;
   final int _indices = 2;
 
@@ -48,6 +52,7 @@ class _TodayTasksScreenState extends State<TodayTasksScreen> {
       )
           .toList();
 
+      _initializeNativeAds();
       await Future.delayed(const Duration(milliseconds: 100));
 
       if (mounted) {
@@ -87,6 +92,8 @@ class _TodayTasksScreenState extends State<TodayTasksScreen> {
     });
   }
 
+
+
   // Helper method to generate banner indices
   List<int> _generateBannerIndices(int taskCount, int step) {
     List<int> indices = [];
@@ -105,6 +112,7 @@ class _TodayTasksScreenState extends State<TodayTasksScreen> {
   void dispose() {
     _topBannerManager?.dispose();
     _bannerManager?.dispose();
+    _nativeAdManager?.dispose();
     super.dispose();
   }
 
@@ -286,8 +294,51 @@ class _TodayTasksScreenState extends State<TodayTasksScreen> {
           ),
           const SizedBox(height: 2),
           Text('Tasks due today will appear here', style: tt.bodySmall),
+          const SizedBox(height: 6),
+          if (_nativeAdManager != null &&
+              _nativeAdManager!.isReady) ...[
+            const SizedBox(height: 10),
+            NativeAdWidget(
+              adManager: _nativeAdManager!,
+              height: 275,
+              width: 270,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ],
         ],
       ),
     );
   }
+  void _initializeNativeAds() {
+    if (!mounted) return;
+
+    final subscriptionProvider = context.read<SubscriptionProvider>();
+
+    setState(() {
+      _nativeAdManager = SubscriptionAwareNativeAdManager(
+        subscriptionProvider: subscriptionProvider,
+        nativePrimaryIdHigh: 'ca-app-pub-7237142331361857/3877570139',
+        nativePrimaryIdMed: 'ca-app-pub-7237142331361857/2341127181',
+        nativePrimaryIdLow: 'ca-app-pub-7237142331361857/3102887974',
+        maxRetry: 5,
+      );
+      _isNativeInitialized = true;
+    });
+
+    debugPrint('[HomeScreen] Native ad manager initialized');
+
+    // Debug: Check status after initialization
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _nativeAdManager != null) {
+        debugPrint('[HomeScreen] Native ad status after 3s:');
+        debugPrint('[HomeScreen] Is ready: ${_nativeAdManager!.isReady}');
+        debugPrint(
+          '[HomeScreen] Current source: ${_nativeAdManager!.currentAdSource}',
+        );
+        debugPrint('[HomeScreen] Status: ${_nativeAdManager!.adStatus}');
+      }
+    });
+  }
+
+
 }

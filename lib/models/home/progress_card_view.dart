@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../service/note/provider/notes_provider.dart';
 import '../../service/task/provider/task_provider.dart';
+import '../../service/todo/provider/todo_provider.dart'; // ✅ Add TodoProvider
 
 class ProgressCardView extends StatefulWidget {
   final VoidCallback onOpen;
@@ -19,6 +20,7 @@ class _ProgressCardViewState extends State<ProgressCardView> {
 
   late TaskProvider taskProvider;
   late NoteProvider noteProvider;
+  late TodoProvider todoProvider; // ✅ Add TodoProvider
   Timer? _updateTimer;
   Timer? _debounceTimer;
   StreamSubscription? _firestoreSubscription;
@@ -38,10 +40,12 @@ class _ProgressCardViewState extends State<ProgressCardView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       taskProvider = Provider.of<TaskProvider>(context, listen: false);
       noteProvider = Provider.of<NoteProvider>(context, listen: false);
+      todoProvider = Provider.of<TodoProvider>(context, listen: false); // ✅ Initialize
 
-      // Listen to any change in tasks/notes
+      // Listen to any change in tasks/notes/todos
       taskProvider.addListener(refreshStats);
       noteProvider.addListener(refreshStats);
+      todoProvider.addListener(refreshStats); // ✅ Add listener
 
       if (currentUser != null) {
         refreshStats();           // First load
@@ -58,6 +62,7 @@ class _ProgressCardViewState extends State<ProgressCardView> {
   void dispose() {
     taskProvider.removeListener(refreshStats);
     noteProvider.removeListener(refreshStats);
+    todoProvider.removeListener(refreshStats); // ✅ Remove listener
     _updateTimer?.cancel();
     _firestoreSubscription?.cancel();
     _debounceTimer?.cancel();
@@ -76,8 +81,8 @@ class _ProgressCardViewState extends State<ProgressCardView> {
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
 
-    return Consumer2<TaskProvider, NoteProvider>(
-      builder: (context, taskProvider, noteProvider, _) {
+    return Consumer3<TaskProvider, NoteProvider, TodoProvider>( // ✅ Add TodoProvider
+      builder: (context, taskProvider, noteProvider, todoProvider, _) {
         //DATA FROM PROVIDERS
         final completed = taskProvider.completedTasks.length;
         final inProcess = taskProvider.inProgressTasks.length;
@@ -85,6 +90,7 @@ class _ProgressCardViewState extends State<ProgressCardView> {
         final totalTasks = completed + inProcess + toDaysTask;
 
         final totalNotes = noteProvider.notes.length;
+        final totalTodos = todoProvider.todos.length; // ✅ Get total todos
 
         // Avoid division by zero
         final total = totalTasks > 0 ? totalTasks : 1;
@@ -136,9 +142,9 @@ class _ProgressCardViewState extends State<ProgressCardView> {
                     Row(
                       children: [
                         _miniStatBox(
-                          "Today Tasks",
-                          toDaysTask.toString(),
-                          Colors.orange,
+                          "Completed",
+                          completed.toString(),
+                          Colors.deepPurpleAccent,
                           textTheme,
                         ),
                         const SizedBox(width: 8),
@@ -154,9 +160,9 @@ class _ProgressCardViewState extends State<ProgressCardView> {
                     Row(
                       children: [
                         _miniStatBox(
-                          "Completed",
-                          completed.toString(),
-                          Colors.deepPurpleAccent,
+                          "Todo",
+                          totalTodos.toString(), // ✅ Show total todos count
+                          Colors.orange,
                           textTheme,
                         ),
                         const SizedBox(width: 8),
@@ -267,11 +273,11 @@ class _ProgressCardViewState extends State<ProgressCardView> {
   }
 
   Widget _miniStatBox(
-    String title,
-    String value,
-    Color color,
-    TextTheme textTheme,
-  ) {
+      String title,
+      String value,
+      Color color,
+      TextTheme textTheme,
+      ) {
     return Container(
       width: MediaQuery.of(context).size.width *0.18,
       padding: const EdgeInsets.all(8),
@@ -358,21 +364,23 @@ class _ProgressCardViewState extends State<ProgressCardView> {
         final completed = taskProvider.completedTasks.length;
         final pending = taskProvider.inProgressTasks.length + taskProvider.todayTasks.length;
         final notes = noteProvider.notes.length;
+        final todos = todoProvider.todos.length; // ✅ Add todos count
 
         await _firestore.collection('users').doc(currentUser!.uid).set({
           'taskCount': total,
           'completedCount': completed,
           'pendingCount': pending,
           'notesCount': notes,
+          'todoCount': todos, // ✅ Save todo count to Firebase
           'lastUpdated': FieldValue.serverTimestamp(),
           'displayName': currentUser!.displayName ?? 'User',
           'email': currentUser!.email,
           'photoURL': currentUser!.photoURL,
         }, SetOptions(merge: true));
 
-        print('Stats synced to Firebase (debounced)');
+        print('✅ Stats synced to Firebase (debounced)');
       } catch (e) {
-        print('Firebase sync failed: $e');
+        print('❌ Firebase sync failed: $e');
       }
     });
   }
@@ -392,6 +400,7 @@ class _ProgressCardViewState extends State<ProgressCardView> {
     final inProcess = taskProvider.inProgressTasks.length;
     final todayTasks = taskProvider.todayTasks.length;
     final totalTasks = taskProvider.allTasks.length;
+    final todos = todoProvider.todos.length; // ✅ Get todos count
 
     if (mounted) {
       setState(() {
@@ -401,7 +410,7 @@ class _ProgressCardViewState extends State<ProgressCardView> {
         notesCount = noteProvider.notes.length;
       });
 
-      print('📊 Stats Updated: Tasks=$taskCount, Completed=$completedCount, Pending=$pendingCount, Notes=$notesCount');
+      print('📊 Stats Updated: Tasks=$taskCount, Completed=$completedCount, Pending=$pendingCount, Notes=$notesCount, Todos=$todos');
     }
   }
 }

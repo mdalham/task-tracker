@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:tasktracker/widget/empty_state.dart';
-import 'package:tasktracker/widget/loading_skeleton.dart';
 import '../../service/ads/banner/banner_ad_container.dart';
 import '../../service/subscription/subscription_aware_banner_manager.dart';
 import '../../service/subscription/subscription_provider.dart';
@@ -11,6 +9,8 @@ import '../../service/task/db/tasks_models.dart';
 import '../../service/task/provider/task_provider.dart';
 import '../../helper class/size_helper_class.dart';
 import '../../helper class/task_helper_class.dart';
+import '../../widget/emptystate/empty_state.dart';
+import '../../widget/emptystate/loading_skeleton.dart';
 import '../add task/task_list_tile.dart';
 
 class CompletedTasks extends StatefulWidget {

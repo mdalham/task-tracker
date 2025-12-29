@@ -66,15 +66,13 @@ class SubscriptionProvider extends ChangeNotifier {
   // ───────────────── AUTH ─────────────────
   Future<bool> signInWithGoogle() async {
     try {
-      _isProcessing = true;
+      _setProcessing(true);
       _errorMessage = null;
-      notifyListeners();
 
       // Sign in with Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        _isProcessing = false;
-        notifyListeners();
+        _setProcessing(false);
         return false; // User cancelled
       }
 
@@ -93,14 +91,12 @@ class SubscriptionProvider extends ChangeNotifier {
 
       debugPrint('[SubscriptionProvider] Signed in: ${_auth.currentUser?.email}');
 
-      _isProcessing = false;
-      notifyListeners();
+      _setProcessing(false);
       return true;
     } catch (e) {
       debugPrint('[SubscriptionProvider] Sign in error: $e');
       _errorMessage = 'Failed to sign in. Please try again.';
-      _isProcessing = false;
-      notifyListeners();
+      _setProcessing(false);
       return false;
     }
   }
@@ -172,9 +168,8 @@ class SubscriptionProvider extends ChangeNotifier {
     }
 
     try {
-      _isProcessing = true;
+      _setProcessing(true);
       _errorMessage = null;
-      notifyListeners();
 
       await _subscriptionManager.buySubscription(product);
 
@@ -182,8 +177,7 @@ class SubscriptionProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[SubscriptionProvider] Purchase error: $e');
       _errorMessage = 'Failed to start purchase. Please try again.';
-      _isProcessing = false;
-      notifyListeners();
+      _setProcessing(false);
     }
   }
 
@@ -196,6 +190,7 @@ class SubscriptionProvider extends ChangeNotifier {
         final product = SubscriptionProduct.fromId(purchase.productID);
         if (product == null) {
           debugPrint('[SubscriptionProvider] Unknown product: ${purchase.productID}');
+          _setProcessing(false);
           return;
         }
 
@@ -206,23 +201,19 @@ class SubscriptionProvider extends ChangeNotifier {
         await _loadSubscription();
 
         _errorMessage = null;
-        _isProcessing = false;
-        notifyListeners();
+        _setProcessing(false);
 
         debugPrint('[SubscriptionProvider] Purchase completed successfully');
       } else if (purchase.status == PurchaseStatus.error) {
         _errorMessage = 'Purchase failed: ${purchase.error?.message}';
-        _isProcessing = false;
-        notifyListeners();
+        _setProcessing(false);
       } else if (purchase.status == PurchaseStatus.canceled) {
-        _isProcessing = false;
-        notifyListeners();
+        _setProcessing(false);
       }
     } catch (e) {
       debugPrint('[SubscriptionProvider] Purchase update error: $e');
       _errorMessage = 'Failed to activate subscription';
-      _isProcessing = false;
-      notifyListeners();
+      _setProcessing(false);
     }
   }
 
@@ -235,17 +226,15 @@ class SubscriptionProvider extends ChangeNotifier {
     }
 
     try {
-      _isProcessing = true;
+      _setProcessing(true);
       _errorMessage = null;
-      notifyListeners();
 
       // Restore from Play Store
       final purchases = await _subscriptionManager.restorePurchases();
 
       if (purchases.isEmpty) {
         _errorMessage = 'No purchases found to restore';
-        _isProcessing = false;
-        notifyListeners();
+        _setProcessing(false);
         return false;
       }
 
@@ -260,18 +249,17 @@ class SubscriptionProvider extends ChangeNotifier {
         _errorMessage = null;
 
         debugPrint('[SubscriptionProvider] Restored successfully');
+        _setProcessing(false);
+        return true;
       } else {
         _errorMessage = 'Restored subscription is not valid';
+        _setProcessing(false);
+        return false;
       }
-
-      _isProcessing = false;
-      notifyListeners();
-      return subscription != null && subscription.isValid;
     } catch (e) {
       debugPrint('[SubscriptionProvider] Restore error: $e');
       _errorMessage = 'Failed to restore purchases';
-      _isProcessing = false;
-      notifyListeners();
+      _setProcessing(false);
       return false;
     }
   }
@@ -318,6 +306,15 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   // ───────────────── UTILITIES ─────────────────
+
+  /// Helper method to safely update processing state
+  void _setProcessing(bool value) {
+    if (_isProcessing != value) {
+      _isProcessing = value;
+      notifyListeners();
+    }
+  }
+
   String getPrice(SubscriptionProduct product) {
     return _subscriptionManager.getPrice(product);
   }

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tasktracker/models/home/custom_appbar.dart';
+import 'package:tasktracker/models/home/day_list.dart';
 import 'package:tasktracker/models/home/note_view.dart';
 import 'package:tasktracker/models/home/progress_card_view.dart';
+import 'package:tasktracker/models/home/todo_list.dart';
 import '../../models/home/completed_tasks.dart';
-import '../../models/home/today_tasks.dart';
-import '../../service/ads/banner/banner_ads.dart';
+import '../../models/home/project.dart';
+import '../../models/home/today_task.dart';
+import '../../service/ads/native_ad_widget.dart';
+import '../../service/subscription/nativ_ad_manager.dart';
 import '../../service/subscription/subscription_aware_banner_manager.dart';
 import '../../service/subscription/subscription_provider.dart';
 import '../../service/task/provider/task_provider.dart';
@@ -20,29 +24,69 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   SubscriptionAwareBannerManager? bannerManager;
+  SubscriptionAwareNativeAdManager? _nativeAdManager;
+  bool _isInitialized = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeBannerManager();
+      _initializeNativeAds();
+    });
+  }
 
-    // ✅ ALTERNATIVE: Initialize here instead of initState
-    // This runs after context is fully available
-    if (bannerManager == null) {
-      final provider = context.read<SubscriptionProvider>();
+  void _initializeBannerManager() {
+    if (!mounted) return;
 
+    final provider = context.read<SubscriptionProvider>();
+    setState(() {
       bannerManager = SubscriptionAwareBannerManager(
         subscriptionProvider: provider,
-        indices: [0, 1, 2],
+        indices: [0, 1],
         admobId: "ca-app-pub-7237142331361857/1563378585",
         metaId: "1916722012533263_1916773885861409",
         unityPlacementId: 'Banner_Android',
       );
-    }
+    });
+    debugPrint('[HomeScreen] Banner manager initialized');
+  }
+
+  void _initializeNativeAds() {
+    if (!mounted) return;
+
+    final subscriptionProvider = context.read<SubscriptionProvider>();
+
+    setState(() {
+      _nativeAdManager = SubscriptionAwareNativeAdManager(
+        subscriptionProvider: subscriptionProvider,
+        nativePrimaryIdHigh: 'ca-app-pub-7237142331361857/3877570139',
+        nativePrimaryIdMed: 'ca-app-pub-7237142331361857/2341127181',
+        nativePrimaryIdLow: 'ca-app-pub-7237142331361857/3102887974',
+        maxRetry: 5,
+      );
+      _isInitialized = true;
+    });
+
+    debugPrint('[HomeScreen] Native ad manager initialized');
+
+    // Debug: Check status after initialization
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _nativeAdManager != null) {
+        debugPrint('[HomeScreen] Native ad status after 3s:');
+        debugPrint('[HomeScreen] Is ready: ${_nativeAdManager!.isReady}');
+        debugPrint(
+          '[HomeScreen] Current source: ${_nativeAdManager!.currentAdSource}',
+        );
+        debugPrint('[HomeScreen] Status: ${_nativeAdManager!.adStatus}');
+      }
+    });
   }
 
   @override
   void dispose() {
     bannerManager?.dispose();
+    _nativeAdManager?.dispose();
     super.dispose();
   }
 
@@ -56,20 +100,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final TextTheme textTheme = Theme.of(context).textTheme;
 
     final media = MediaQuery.of(context).size;
     final scale = _scale(context);
     double bottomPadding = (media.height * 0.15 * scale).clamp(50, 90);
 
-    final todayTasks = Provider.of<TaskProvider>(context, listen: false).todayTasks;
-
-    // ✅ Safety check
-    if (bannerManager == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+    // ✅ Safety check - show loading while initializing
+    if (bannerManager == null || !_isInitialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -79,6 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
+            scrollDirection: Axis.vertical,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -89,33 +129,37 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // ✅ Now safe to use with !
-                ValueListenableBuilder<bool>(
-                  valueListenable: bannerManager!.bannerReady(0),
-                  builder: (_, isReady, __) {
-                    if (!isReady) return const SizedBox.shrink();
-                    return bannerManager!.getBannerWidget(0);
-                  },
-                ),
-
-                if (todayTasks.isNotEmpty) ...[
-                  AnimationWidget(
-                    start: 0.1,
-                    end: 0.5,
-                    child: Text(
-                      'Today tasks',
-                      style: textTheme.titleLarge,
+                // Horizontal scrolling section
+                Scrollbar(
+                  thickness: 4,
+                  radius: const Radius.circular(10),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        const TodayTask(),
+                        const SizedBox(width: 10),
+                        const TodoList(),
+                        const SizedBox(width: 10),
+                        if (_nativeAdManager!.isReady)
+                          NativeAdWidget(
+                            adManager: _nativeAdManager!,
+                            height: 360,
+                            width: 290,
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        if (_nativeAdManager!.isReady)
+                          const SizedBox(width: 10),
+                        const DayList(),
+                        const SizedBox(width: 10),
+                        const Project(),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  AnimationWidget(
-                    start: 0.2,
-                    end: 0.6,
-                    child: const TodayTasks(),
-                  ),
-                ],
+                ),
                 const SizedBox(height: 10),
 
+                // Notes section
                 AnimationWidget(
                   start: 0.3,
                   end: 0.7,
@@ -125,14 +169,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 AnimationWidget(start: 0.4, end: 0.8, child: const NoteView()),
                 const SizedBox(height: 10),
 
+                // Banner Ad 2
                 ValueListenableBuilder<bool>(
-                  valueListenable: bannerManager!.bannerReady(1),
+                  valueListenable: bannerManager!.bannerReady(0),
                   builder: (_, isReady, __) {
                     if (!isReady) return const SizedBox.shrink();
-                    return bannerManager!.getBannerWidget(1);
+                    return bannerManager!.getBannerWidget(0);
                   },
                 ),
+                const SizedBox(height: 10),
 
+                // Completed tasks section
                 AnimationWidget(
                   start: 0.5,
                   end: 0.9,
@@ -144,12 +191,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   end: 1,
                   child: const CompletedTasks(),
                 ),
+                const SizedBox(height: 10),
 
+                // Banner Ad 3
                 ValueListenableBuilder<bool>(
-                  valueListenable: bannerManager!.bannerReady(2),
+                  valueListenable: bannerManager!.bannerReady(1),
                   builder: (_, isReady, __) {
                     if (!isReady) return const SizedBox.shrink();
-                    return bannerManager!.getBannerWidget(2);
+                    return bannerManager!.getBannerWidget(1);
                   },
                 ),
 

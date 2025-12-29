@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tasktracker/screen/secondary/image_view_screen.dart';
 import 'package:tasktracker/service/note/provider/notes_provider.dart';
 import 'package:tasktracker/helper%20class/note_helper_class.dart';
+import 'package:tasktracker/widget/emptystate/view_empty_state.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../models/dialog/delete_dialog.dart';
@@ -657,15 +658,8 @@ class _NoteSheetState extends State<_NoteSheet> {
                       widget.note.audios.isEmpty &&
                       widget.note.checklist.isEmpty)
                     Center(
-                      child: Text(
-                        'No additional details',
-                        style: textTheme.bodyMedium,
-                      ),
+                      child: ViewEmptyState(title: 'No additional details'),
                     ),
-                  const SizedBox(height: 10),
-
-                  // ✅ FIXED: Use safe banner builder
-                  _buildBanner(2),
                 ],
               ),
             ),

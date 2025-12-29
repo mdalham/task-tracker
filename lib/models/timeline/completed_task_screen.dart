@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:tasktracker/widget/loading_skeleton.dart';
+import 'package:tasktracker/widget/emptystate/loading_skeleton.dart';
 import '../../service/ads/banner/banner_ad_container.dart';
 import '../../service/subscription/subscription_aware_banner_manager.dart';
 import '../../service/subscription/subscription_provider.dart';

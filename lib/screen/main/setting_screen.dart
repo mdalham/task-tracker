@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:tasktracker/helper%20class/icon_helper.dart';
 import 'package:tasktracker/helper%20class/size_helper_class.dart';
-import 'package:tasktracker/service/subscription/subscription_screen.dart';
+import 'package:tasktracker/screen/secondary/subscription_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/add task/custom_menu.dart';
 import '../../models/setting/watch_ad_button.dart';
@@ -49,11 +49,11 @@ class _SettingScreenState extends State<SettingScreen>
       duration: const Duration(milliseconds: 250),
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
       final subscriptionProvider = context.read<SubscriptionProvider>();
-
+      await Future.delayed(const Duration(milliseconds: 50));
       setState(() {
         bannerManager = SubscriptionAwareBannerManager(
           subscriptionProvider: subscriptionProvider,

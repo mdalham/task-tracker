@@ -80,7 +80,7 @@ class _TermsOfServiceState extends State<TermsOfService> {
                         // Small note
                         Center(
                           child: Text(
-                            'Last updated: November 24, 2025',
+                            'Last updated: December 29, 2025',
                             style: textTheme.bodySmall,
                           ),
                         ),
@@ -99,91 +99,95 @@ class _TermsOfServiceState extends State<TermsOfService> {
 }
 
 class _TermsContent extends StatelessWidget {
-  final EdgeInsets _sectionPadding = const EdgeInsets.symmetric(vertical: 8);
-
   const _TermsContent({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = Theme
+        .of(context)
+        .textTheme;
+    final colorScheme = Theme
+        .of(context)
+        .colorScheme;
+
+    // Helper to keep the UI clean
+    Widget termSection(String title, String body, {bool isBoldBody = false}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              body,
+              style: textTheme.bodyMedium?.copyWith(
+                height: 1.5,
+                fontWeight: isBoldBody ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+          ],
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Welcome', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_welcomeText, style: textTheme.bodyMedium),
-
-        Padding(padding: _sectionPadding, child: Divider()),
-
-        Text('App', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_usingAppText, style: textTheme.bodyMedium),
-
-        Padding(padding: _sectionPadding, child: Divider()),
-
-        Text('Content', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_yourContentText, style: textTheme.bodyMedium),
-
-        Padding(padding: _sectionPadding, child: Divider()),
-
-        Text('Privacy & Data', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_privacyText, style: textTheme.bodyMedium),
-
-        Padding(padding: _sectionPadding, child: Divider()),
-
-        Text('Security', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_securityText, style: textTheme.bodyMedium),
-
-        Padding(padding: _sectionPadding, child: Divider()),
-
-        Text('Limitations of Liability', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_liabilityText, style: textTheme.bodyMedium),
-
-        Padding(padding: _sectionPadding, child: Divider()),
-
-        Text('Termination & Changes', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_changesText, style: textTheme.bodyMedium),
-
-        Padding(padding: _sectionPadding, child: Divider()),
-
-        Text('Contact', style: textTheme.titleLarge),
-        const SizedBox(height: 2),
-        Text(_contactText, style: textTheme.bodyMedium),
-        Text('info.thardstudio@gmail.com.', style: textTheme.bodyMedium!.copyWith(fontWeight: FontWeight.bold)),
-
+        termSection('1. Welcome & Acceptance', _welcomeText),
+        termSection('2. Using the App', _usingAppText),
+        termSection('3. Your Content & Ownership', _yourContentText),
+        termSection('4. Security & Responsibility', _securityText),
+        termSection('5. Ads & Subscriptions', _subscriptionText),
+        termSection('6. Limitations of Liability', _liabilityText),
+        termSection('7. Termination', _changesText),
+        termSection('8. Contact Us', _contactText, isBoldBody: true),
       ],
     );
   }
 }
 
-// --------------------------- Terms Text ---------------------------
+
+
+// --------------------------- Updated Terms Text ---------------------------
 
 const String _welcomeText =
-    'Thank you for choosing Task Tracker. These Terms of Service ("Terms") govern your use of our note and task management application.';
+    'Thank you for choosing Task Tracker. These Terms govern your use of our application. By accessing the App, you agree to be bound by these Terms.';
+
+const String _subscriptionText =
+    'The App may display third-party advertisements to support development. '
+    'Users may choose to upgrade to a Premium Subscription to remove all ads '
+    'and unlock advanced features.\n\n'
+    '• Billing: Subscription payments are securely processed via the Apple App Store or Google Play. '
+    'We do not collect or store payment information.\n'
+    '• Trials: If a free trial is offered, charges will apply after the trial ends unless canceled at least '
+    '24 hours before the end of the trial period.\n'
+    '• Renewals & Cancellations: Subscriptions automatically renew unless canceled. '
+    'You can manage or cancel your subscription at any time through your device’s Store Settings.\n\n'
+    'Your subscription status is used solely to provide premium benefits and remove advertisements.';
 
 const String _usingAppText =
-    'The App provides tools to create, edit, organize, and synchronize notes and tasks. You may not misuse the App to store illegal content, infringe third-party rights, or attempt to access other users\' data.';
+    'The App provides tools for task management. You agree not to use the App for illegal purposes or to attempt to interfere with the App\'s security features.';
 
 const String _yourContentText =
-    'You retain full ownership of all notes, tasks, and other content you create in the app. All your data is stored locally on your device and is never uploaded to any server. We do not access, collect, or transmit your content.';
-
-const String _privacyText =
-    'We do not collect, store, or share any personal data. All notes, tasks, and user information—including login details—remain securely on your device and are never transmitted to us or any third party. Your data stays private and fully under your control. Since this app does not use any cloud services, none of your content is uploaded, synced, or shared.';
+    'You retain full ownership of your data. While your tasks are primarily stored on your device, your subscription status and account profile are synced to allow for feature restoration across devices.';
 
 const String _securityText =
-    'We use standard security measures, but no system is 100% secure. Avoid storing highly sensitive information in plain text. Use device security features such as passcode or biometrics for better protection.';
+    'You are responsible for safeguarding the device that holds your data. We recommend using device-level biometrics (FaceID/Fingerprint) to protect your tasks from unauthorized access.';
 
 const String _liabilityText =
-    'To the extent allowed by law, we are not liable for any indirect or incidental damages. We do not guarantee the app will be error-free or always available. You are responsible for backing up your important data.';
+    'Task Tracker is provided "as-is." We are not liable for any data loss resulting from device failure or accidental deletion. Users are encouraged to utilize backup features where available.';
 
 const String _changesText =
-    'We may update these Terms at any time and will notify you in the App. Continued use means you accept the changes. We may suspend or terminate access if you violate these Terms.';
+    'We reserve the right to modify these terms. Continued use of the App after updates constitutes acceptance of the new terms.';
 
 const String _contactText =
-    'If you have questions about these Terms, contact us at';
+    'Questions? Contact support at: info.thardstudio@gmail.com';

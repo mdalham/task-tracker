@@ -3,7 +3,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:tasktracker/models/dialog/delete_dialog.dart';
 import 'package:tasktracker/widget/custom_container.dart';
-import 'package:tasktracker/widget/loading_skeleton.dart';
+import 'package:tasktracker/widget/emptystate/loading_skeleton.dart';
 import 'package:tasktracker/helper%20class/note_helper_class.dart';
 import '../../models/note view/custom_notes_list_tile.dart';
 import '../../service/ads/banner/banner_ad_container.dart';
@@ -11,7 +11,6 @@ import '../../service/note/db/notes_models.dart';
 import '../../service/note/provider/notes_provider.dart';
 import '../../helper class/size_helper_class.dart';
 import '../../service/subscription/subscription_aware_banner_manager.dart';
-import '../../service/subscription/subscription_aware_interstitial_manager ·.dart';
 import '../../service/subscription/subscription_provider.dart';
 import '../../widget/custom_snack_bar.dart';
 import '../secondary/note_add_or_edit_screen.dart';
@@ -36,23 +35,37 @@ class _NotesScreenState extends State<NotesScreen>
 
   SubscriptionAwareBannerManager? _bannerManager;
   bool _isInitialized = false;
+  int _lastNoteCount = 0;
 
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Load notes first
+      await Provider.of<NoteProvider>(context, listen: false).loadNotes();
 
-      final subscriptionProvider = context.read<SubscriptionProvider>();
-      final noteProvider = context.read<NoteProvider>();
-      final noteCount = noteProvider.notes.length;
+      // Then initialize banner manager
+      _initializeBannerManager();
+    });
+  }
 
+  void _initializeBannerManager() {
+    if (!mounted) return;
+
+    final subscriptionProvider = context.read<SubscriptionProvider>();
+    final noteProvider = context.read<NoteProvider>();
+    final noteCount = noteProvider.notes.length;
+
+    // Always initialize or reinitialize if count changed
+    if (noteCount >= 0) { // ✅ Changed from > 0 to >= 0
       // Generate banner indices (banner every 2 notes)
       final indices = _generateBannerIndices(noteCount, _indices);
 
-      setState(() {
+      // Dispose old manager if exists
+      _bannerManager?.dispose();
 
+      setState(() {
         // Initialize banner manager
         _bannerManager = SubscriptionAwareBannerManager(
           subscriptionProvider: subscriptionProvider,
@@ -63,10 +76,14 @@ class _NotesScreenState extends State<NotesScreen>
         );
 
         _isInitialized = true;
+        _lastNoteCount = noteCount;
       });
 
-      debugPrint('[NotesScreen] Initialized with $noteCount notes, ${indices.length} banner positions');
-    });
+      debugPrint(
+        '[NotesScreen] ✅ Initialized with $noteCount notes, ${indices.length} banner positions',
+      );
+      debugPrint('[NotesScreen] Banner indices: $indices');
+    }
   }
 
   List<int> _generateBannerIndices(int itemCount, int step) {
@@ -79,6 +96,7 @@ class _NotesScreenState extends State<NotesScreen>
       index += step + 1; // +1 because banner occupies a slot
     }
 
+    debugPrint('[NotesScreen] Generated ${indices.length} banner indices for $itemCount items');
     return indices;
   }
 
@@ -114,6 +132,15 @@ class _NotesScreenState extends State<NotesScreen>
     return Consumer<NoteProvider>(
       builder: (context, provider, _) {
         final categories = _categories(provider);
+        final currentNoteCount = provider.notes.length;
+
+        // Reinitialize banner manager if note count changed
+        if (_lastNoteCount != currentNoteCount) {
+          debugPrint('[NotesScreen] Note count changed: $_lastNoteCount → $currentNoteCount');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _initializeBannerManager();
+          });
+        }
 
         // init controllers & tabs safely
         _initControllers(categories.length);
@@ -192,32 +219,37 @@ class _NotesScreenState extends State<NotesScreen>
             ),
           ),
           body: SafeArea(
-            child: TabBarView(
-              controller: _tabController,
-              children: List.generate(categories.length, (i) {
-                final cat = categories[i];
-                final visible = _visibleNotesFor(cat, provider);
+            child: Padding(
+              padding: const EdgeInsets.only(
+                  left: 10, right: 10, top: 10, bottom: 4),
+              child: TabBarView(
+                controller: _tabController,
+                children: List.generate(categories.length, (i) {
+                  final cat = categories[i];
+                  final visible = _visibleNotesFor(cat, provider);
 
-                if (visible.isEmpty) {
-                  return const Center(child: Text('No notes in this category'));
-                }
+                  if (visible.isEmpty) {
+                    return const Center(
+                        child: Text('No notes in this category'));
+                  }
 
-                return SmartRefresher(
-                  controller: _controllers[i],
-                  onRefresh: _onRefresh,
-                  header: const MaterialClassicHeader(),
-                  child: provider.isLoading
-                      ? LoadingSkeleton(
-                    loadingSkeletonItemCount: visible.length,
-                  )
-                      : _buildNoteList(
-                    visible,
-                    cs,
-                    listIconContainerHeight,
-                    listIconContainerWidth,
-                  ),
-                );
-              }),
+                  return SmartRefresher(
+                    controller: _controllers[i],
+                    onRefresh: _onRefresh,
+                    header: const MaterialClassicHeader(),
+                    child: provider.isLoading
+                        ? LoadingSkeleton(
+                      loadingSkeletonItemCount: visible.length,
+                    )
+                        : _buildNoteList(
+                      visible,
+                      cs,
+                      listIconContainerHeight,
+                      listIconContainerWidth,
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
         );
@@ -231,28 +263,42 @@ class _NotesScreenState extends State<NotesScreen>
       double iconHeight,
       double iconWidth,
       ) {
+    // ✅ Better check for ad availability
+    final showAds = _isInitialized && _bannerManager != null;
 
-    final showAds = _isInitialized &&
-        _bannerManager != null &&
-        !_bannerManager!.isDisposed;
+    debugPrint('[NotesScreen] Building list:');
+    debugPrint('  - Notes count: ${notes.length}');
+    debugPrint('  - Show ads: $showAds');
+    debugPrint('  - Banner manager initialized: $_isInitialized');
+    debugPrint('  - Banner manager null: ${_bannerManager == null}');
 
-    final bannerIndices = showAds ? _bannerManager!.getAvailableSources().isNotEmpty
+    if (showAds) {
+      debugPrint('  - Banner manager disposed: ${_bannerManager!.isDisposed}');
+      debugPrint('  - Available sources: ${_bannerManager!.getAvailableSources()}');
+    }
+
+    final bannerIndices = showAds && !_bannerManager!.isDisposed
         ? _generateBannerIndices(notes.length, _indices)
-        : <int>[]
         : <int>[];
 
+    debugPrint('  - Banner indices: $bannerIndices');
+
     final itemCount = notes.length + bannerIndices.length;
+    debugPrint('  - Total item count (notes + banners): $itemCount');
 
     return ListView.builder(
-      padding: const EdgeInsets.all(10),
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const BouncingScrollPhysics(),
       itemCount: itemCount,
       itemBuilder: (context, index) {
         // Check if this index should show a banner
         if (showAds && bannerIndices.contains(index)) {
+          debugPrint('[NotesScreen] 📺 Banner at index $index');
+
           return ValueListenableBuilder<bool>(
             valueListenable: _bannerManager!.bannerReady(index),
             builder: (context, isReady, child) {
+              debugPrint('[NotesScreen] Banner $index ready: $isReady');
+
               if (!isReady) return const SizedBox.shrink();
 
               return Padding(
@@ -461,6 +507,9 @@ class _NotesScreenState extends State<NotesScreen>
     final currentIndex = _tabController!.index;
 
     await provider.loadNotes();
+
+    // Reinitialize banner manager after refresh
+    _initializeBannerManager();
 
     if (mounted && currentIndex < _controllers.length) {
       _controllers[currentIndex].refreshCompleted();

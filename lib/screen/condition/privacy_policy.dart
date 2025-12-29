@@ -117,6 +117,7 @@ class _PrivacyContent extends StatelessWidget {
         section('Local Storage & Sync', _localSync),
         section('Data Security', _security),
         section('Third‑Party Services', _thirdParty),
+        section('Ads & Subscriptions', _adsSubscription),
         section('Your Choices & Controls', _choices),
         section('Children’s Privacy', _children),
         section('Changes to This Policy', _changes),
@@ -124,7 +125,7 @@ class _PrivacyContent extends StatelessWidget {
 
         Center(
           child: Text(
-            'Last updated: November 24, 2025',
+            'Last updated: December 29, 2025',
             style: textTheme.bodyMedium,
           ),
         ),
@@ -137,31 +138,50 @@ class _PrivacyContent extends StatelessWidget {
 // ----------------------- PRIVACY POLICY TEXT -----------------------
 
 const String _intro =
-    'This Privacy Policy explains how our Task Tracker application collects, uses, and protects your information. By using the App, you agree to the practices described here.';
+    'This Privacy Policy explains how our Task Tracker application collects, uses, and protects your information. By using the App and its premium features, you agree to the practices described here.';
 
 const String _collect =
-    'We collect minimal data required for the App to function. This may include:\n\n• Basic account information (if sign‑in is used)\n• App usage analytics (crash logs, performance data)\n\nWe do NOT collect or sell personal data unrelated to app functionality.';
+    'We collect minimal data required for the App to function. This includes:\n\n'
+    '• Basic account information (Email used for Google Sign-In)\n'
+    '• Subscription status (To verify your premium features)\n'
+    '• App usage analytics (crash logs, performance data)\n\n'
+    'We do NOT collect or sell personal data unrelated to app functionality.';
 
 const String _usage =
-    'We use collected data to:\n\n• Improve app performance and stability\n• Provide customer support\n• Enhance features and user experience\n\nWe never use your private data for sell or advertising or tracking.';
+    'We use collected data to:\n\n'
+    '• Provide and manage your Ads-Free experience\n'
+    '• Restore your purchases across different devices\n'
+    '• Improve app performance and stability\n\n'
+    'We never sell your private data to third parties.';
 
 const String _localSync =
-    'Your notes and tasks are primarily stored locally on your device. Your content always remains yours.';
+    'Your tasks are primarily stored on your device. However, your subscription status and basic profile are synced with our secure database to ensure you keep your premium features if you switch devices.';
 
 const String _security =
-    'We don’t store your data in the cloud. While no digital system is fully secure, using device-level protection like PIN, fingerprint, or face unlock is recommended.';
+    'We take data security seriously. While your tasks are local, your account info is secured via Google Sign-In and Firebase. We recommend using device-level protection like PIN or Biometrics.';
 
 const String _thirdParty =
-    'The app may use Firebase Crashlytics for crash analytics. We do not share your note content with third parties.';
+    'We use Google Firebase for authentication and crash analytics. Payment processing for subscriptions is handled exclusively by the Apple App Store or Google Play Store. We never see or store your credit card information.';
+
+const String _adsSubscription =
+    'The app may display third-party advertisements to support development. '
+    'If you choose to purchase an ad-removal or premium subscription, all ads '
+    'will be permanently disabled for your account.\n\n'
+    'Subscription purchases are handled securely by Google Play or Apple App Store. '
+    'We do not collect, store, or process your payment information directly.\n\n'
+    'Your subscription status is used only to unlock premium features and remove ads.';
 
 const String _choices =
-    'You have control over your data, including:\n\n• Editing or deleting your notes and tasks\n• Clearing app data\n• Revoking storage permissions\n\nYou may uninstall the App at any time to stop data collection.';
+    'You have full control:\n\n'
+    '• Manage/Cancel Subscriptions: This must be done via your App Store/Play Store settings.\n'
+    '• Data Deletion: You can delete your tasks or account at any time.\n'
+    '• Ad Preferences: Upgrading to Premium removes all third-party advertisements.';
 
 const String _children =
-    'This app is suitable for all ages. We do not knowingly collect personal information from children.';
+    'This app is suitable for all ages. We do not knowingly collect personal information from children under 13.';
 
 const String _changes =
-    'We may update this Privacy Policy. Continued use of the app means you accept any changes.';
+    'We may update this policy to reflect changes in our subscription models or app features. Continued use of the app signifies your acceptance.';
 
 const String _contact =
-    'For any questions regarding this Privacy Policy, email us at ';
+    'For any questions regarding your subscription or this policy, email us at ';

@@ -11,7 +11,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../helper class/permission_handler.dart';
 import '../../service/ads/notic/consent_ads_helper.dart';
-import '../../service/subscription/subscription_screen.dart';
+import '../../service/notification/service/notification_service.dart';
+import 'subscription_screen.dart';
 import '../main/nav_bar_screen.dart';
 import 'package:workmanager/workmanager.dart';
 import '../../service/subscription/subscription_provider.dart';
@@ -222,7 +223,7 @@ class _AppInitializerState extends State<AppInitializer>
     try {
       await Workmanager().initialize(
         universalCallbackDispatcher,
-        isInDebugMode: kDebugMode,
+        isInDebugMode: false,
       );
       debugPrint('Workmanager initialized');
 
@@ -299,18 +300,4 @@ Future<void> requestIgnoreBatteryOptimizations() async {
   } catch (e) {
     debugPrint("Error launching battery optimization intent: $e");
   }
-}
-
-
-@pragma('vm:entry-point')
-void universalCallbackDispatcher() {
-  Workmanager().executeTask((task, inputData) {
-    debugPrint('Background task executed: $task');
-    try {
-      return Future.value(true);
-    } catch (e) {
-      debugPrint('Background task failed: $e');
-      return Future.value(false);
-    }
-  });
 }
